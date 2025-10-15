@@ -1,0 +1,274 @@
+/*
+ * dht11.c
+ *  Created on: Aug 6, 2025
+ *  Author: ernst
+ */
+
+#include "dht11.h"
+#include "stm32l4xx_hal.h"
+#include "delay_us.h"
+#include <stdio.h>
+
+/* ---- Timing via DWT ---------------------------------------------------- */
+#ifndef TICKS_PER_US
+#define TICKS_PER_US (SystemCoreClock/1000000U)
+#endif
+
+static inline void DWT_EnsureEnabled(void){
+    if ((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk) == 0) {
+        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    }
+    if ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) == 0) {
+        DWT->CYCCNT = 0;
+        DWT->CTRL  |= DWT_CTRL_CYCCNTENA_Msk;
+        __DSB();
+        __ISB();
+    }
+}
+
+/* ---- Helpers / Diagnose ------------------------------------------------ */
+volatile int16_t dht11_fail_bit   = -1; // -1 oder 0..39
+volatile int8_t  dht11_fail_stage = -1; // -1, 0=waitLOW, 1=waitRISING, 2=measureHIGH
+
+static void DHT11_SetPinOutput(DHT11_HandleTypeDef* dht) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin   = dht->GPIO_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD; // Open-Drain
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+ //   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(dht->GPIOx, &GPIO_InitStruct);
+}
+
+static void DHT11_SetPinInput(DHT11_HandleTypeDef* dht) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin  = dht->GPIO_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP; // Modul-Pullup + intern = steilere High-Flanke
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(dht->GPIOx, &GPIO_InitStruct);
+}
+
+
+static void analyse_bit_timing(uint32_t high_us, int bit_number, uint8_t bit_value){
+    printf("Bit %2d:  -> %d\r\n", bit_number, bit_value);
+}
+
+static void dht_debug_locate_flip(const uint8_t data[5]) {
+    uint8_t exp = (uint8_t)(data[0]+data[1]+data[2]+data[3]);
+    if (exp == data[4]) { printf("CS OK\t"); return; }
+    for (int k = 0; k < 32; ++k) {
+        uint8_t b[4] = {data[0],data[1],data[2],data[3]};
+        int bi = k/8, bj = 7-(k%8);           // MSB-first
+        b[bi] ^= (1u<<bj);
+        uint8_t exp2 = (uint8_t)(b[0]+b[1]+b[2]+b[3]);
+        if (exp2 == data[4]) {
+            printf(">> Kandidat: Bit %d (Byte %d, Bit %d) kippt}\r\n", k, bi, bj);
+        }
+    }
+}
+
+
+
+/* ---- Präsenz: 0 = OK, <0 Fehler --------------------------------------- */
+
+
+int DHT11_Presence(GPIO_TypeDef* port, uint16_t pin)
+{
+    GPIO_InitTypeDef g = {0};
+    g.Pin = pin; g.Mode = GPIO_MODE_OUTPUT_OD; g.Pull = GPIO_NOPULL; g.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(port, &g);
+
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+    HAL_Delay(20);
+
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);
+    g.Mode = GPIO_MODE_INPUT; g.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(port, &g);
+
+    delay_us(35); // ~30–50 µs, dann Präsenz suchen
+
+    // Erwartet: ~80 µs LOW, dann ~80 µs HIGH
+    uint32_t to = 500;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) { if (!to--) return -1; delay_us(1); }
+    to = 500;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_RESET){ if (!to--) return -2; delay_us(1); }
+    to = 500;
+    while (HAL_GPIO_ReadPin(port, pin) == GPIO_PIN_SET) { if (!to--) return -3; delay_us(1); }
+
+    return 0;
+}
+
+typedef enum { DHT_TYPE_UNKNOWN=0, DHT_TYPE_11, DHT_TYPE_22 } DHT_Type;
+typedef enum { DHT_DEC_OK=0, DHT_DEC_ERR_CSUM } DHT_DecodeStatus;
+
+DHT_DecodeStatus DHT_DecodeAuto(const uint8_t data[5],
+                                float *tC, float *rh, DHT_Type *type)
+{
+    uint8_t b0=data[0], b1=data[1], b2=data[2], b3=data[3], cs=data[4];
+    uint8_t sum = (uint8_t)(b0+b1+b2+b3);
+    if (sum != cs) return DHT_DEC_ERR_CSUM;
+
+    // Heuristik: DHT22, wenn Nachkommabits benutzt oder Werte außerhalb DHT11-Bereich
+    int looks22 = (b1 != 0) || (b3 > 100) || (b0 > 100) || (b2 > 60);
+
+    if (looks22) {
+        *rh  = b0 + b1 * 0.1f;   // i.d.R. b1==0 beim DHT11
+        *tC  = b2 + b3 * 0.1f;
+        *type = DHT_TYPE_11;
+    } else {
+        *rh  = b0 + b1 * 0.1f;   // i.d.R. b1==0 beim DHT11
+        *tC  = b2 + b3 * 0.1f;   // i.d.R. b3==0 beim DHT11
+        *type = DHT_TYPE_11;
+    }
+    return DHT_DEC_OK;
+}
+
+/* ---- Haupt-Read: 40 Bits ---------------------------------------------- */
+DHT11_Status DHT11_Read(DHT11_HandleTypeDef* dht, float* temperature, uint8_t* humidity)
+{
+
+    dht11_fail_bit = -1;
+    dht11_fail_stage = -1;
+
+    if (!dht || !temperature|| !humidity) return DHT11_ERR_BIT_TO;
+
+    uint8_t data[5] = {0};
+
+    /* Start signal: ≥18 ms LOW */
+    DHT11_SetPinOutput(dht);
+    HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_RESET);
+    HAL_Delay(20);
+    HAL_GPIO_WritePin(dht->GPIOx, dht->GPIO_Pin, GPIO_PIN_SET);
+    DHT11_SetPinInput(dht);
+
+    /* Wait before presence detection */
+    delay_us(35);
+
+    /* Enable presence detection*/
+    uint32_t t = 0;
+    while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET) {
+        if (++t > 300){ return DHT11_ERR_PRES_HI; }
+        delay_us(1);
+    }
+    t = 0;
+    while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_RESET){
+        if (++t > 300){ return DHT11_ERR_PRES_LO; }
+        delay_us(1);
+    }
+    t = 0;
+    while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET) {
+        if (++t > 300){ return DHT11_ERR_PRES_HI2; }
+        delay_us(1);
+    }
+
+    /* Critical timing section */
+    DWT_EnsureEnabled();
+    HAL_SuspendTick();
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+
+    DHT11_Status st = DHT11_OK;
+    const uint32_t TO_WAIT_EDGE_US = 200U;
+
+    /* FIXED: Use consistent timing for all bits */
+    const uint32_t SAMPLE_DELAY_US = 45U;  // Optimal sampling point
+
+    /* Synchronize before first bit */
+    uint32_t t0 = DWT->CYCCNT;
+    while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET) {
+        if ((DWT->CYCCNT - t0) > (1000U * TICKS_PER_US)) {
+            dht11_fail_bit=-1; dht11_fail_stage=0; st=DHT11_ERR_BIT_TO; goto abort_bits;
+        }
+    }
+
+    // Debug arrays
+    uint8_t dbg_bits[40] = {0};
+    uint8_t dbg_pin_state[40] = {0};
+
+    for (int i = 0; i < 40; i++) {
+        /* Wait for falling edge (start of bit) */
+        uint32_t t0 = DWT->CYCCNT;
+        while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET) {
+            if ((DWT->CYCCNT - t0) > (TO_WAIT_EDGE_US * TICKS_PER_US)) {
+                dht11_fail_bit = i; dht11_fail_stage = 0; st = DHT11_ERR_BIT_TO; goto abort_bits;
+            }
+        }
+
+        /* Wait for rising edge */
+        t0 = DWT->CYCCNT;
+        while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_RESET) {
+            if ((DWT->CYCCNT - t0) > (TO_WAIT_EDGE_US * TICKS_PER_US)) {
+                dht11_fail_bit = i; dht11_fail_stage = 1; st = DHT11_ERR_BIT_TO; goto abort_bits;
+            }
+        }
+
+        /* FIXED: Sample at consistent timing for ALL bits */
+        uint32_t rising_edge = DWT->CYCCNT;
+
+        // Wait for optimal sample point (45µs after rising edge)
+        while ((DWT->CYCCNT - rising_edge) < (SAMPLE_DELAY_US * TICKS_PER_US)) {}
+
+        uint8_t pin_state = (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET);
+        uint8_t bit = pin_state ? 1 : 0;
+
+        // Pack bit into data array (MSB first)
+        data[i/8] <<= 1;
+        data[i/8] |= bit;
+
+        // Store debug info
+        dbg_bits[i] = bit;
+        dbg_pin_state[i] = pin_state;
+
+        /* Wait for end of high phase (helps with timing stability) */
+        if (i < 39) {
+            uint32_t sync_timeout = DWT->CYCCNT;
+            while (HAL_GPIO_ReadPin(dht->GPIOx, dht->GPIO_Pin) == GPIO_PIN_SET) {
+                if ((DWT->CYCCNT - sync_timeout) > (250U * TICKS_PER_US)) break;
+            }
+        }
+    }
+
+abort_bits:
+    __set_PRIMASK(primask);
+    HAL_ResumeTick();
+
+    /* Reconstruct data for verification */
+
+
+   /* Verify data packing */
+ /* for (int b = 0; b < 4; ++b) {
+        if (rec[b] != data[b]) {
+            printf("PACK MISMATCH: byte%d rec=%u data=%u\r\n", b, rec[b], data[b]);
+        }
+    }
+*/
+    if (st != DHT11_OK) return st;
+
+    /* Enhanced debug output */
+ /*  dht_debug_locate_flip(data);
+
+    float tC, rh; DHT_Type ty;
+    if (DHT_DecodeAuto(data, &tC, &rh, &ty) == DHT_DEC_OK) {
+        printf("Typ=%s  RH=%.1f%%  T=%.1fC\n", ty==DHT_TYPE_22?"DHT22":"DHT11", rh, tC);
+    } else {
+        printf("Checksumme falsch\n");
+    }
+*/
+    /* Debug Ausgabe */
+ /*   printf("RAW: %u,%u,%u,%u | CS=%u exp=%u\t",
+           data[0], data[1], data[2], data[3], data[4],
+           (uint8_t)(data[0] + data[1] + data[2] + data[3]));
+
+*/
+
+    /* Checksum validation */
+    if ((uint8_t)(data[0] + data[1] + data[2] + data[3]) != data[4]) {
+        return DHT11_ERR_CSUM;
+    }
+
+    /* DHT11-Format: RH = data[0].[1], T = data[2].[3] (Nachkommastellen meist 0) */
+    *humidity    = data[0];
+    *temperature = (float)data[2] + (float)data[3] * 0.1f;
+    return DHT11_OK;
+}

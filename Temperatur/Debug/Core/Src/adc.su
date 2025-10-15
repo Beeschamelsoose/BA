@@ -1,0 +1,8 @@
+../Core/Src/adc.c:33:6:MX_ADC1_Init	32	static
+../Core/Src/adc.c:86:6:HAL_ADC_MspInit	128	static
+../Core/Src/adc.c:131:6:HAL_ADC_MspDeInit	16	static
+../Core/Src/adc.c:154:13:ADCx_GPIO_Init	32	static
+../Core/Src/adc.c:169:6:ADC1_PA4_Init	40	static
+../Core/Src/adc.c:219:19:ADC1_ReadRaw	24	static
+../Core/Src/adc.c:237:19:ADC1_ReadVoltage	24	static
+../Core/Src/adc.c:247:19:ADC1_ReadRawAveraged	32	static

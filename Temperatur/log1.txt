@@ -1,0 +1,201 @@
+S1 Fehler (-20)	S1 Fehler (-20) @bit=-1 stage=-1	
+RECON: 68,0,56,10 | exp=134  (compare to RAW below)
+>> Kandidat: Bit 7 (Byte 0, Bit 0) kippt}
+>> Kandidat: Bit 15 (Byte 1, Bit 0) kippt}
+>> Kandidat: Bit 23 (Byte 2, Bit 0) kippt}
+>> Kandidat: Bit 31 (Byte 3, Bit 0) kippt}
+Checksumme falsch
+RAW: 68,0,56,10 | CS=135 exp=134	 
+Bit  0: -> 0
+Bit  1: -> 1
+Bit  2: -> 0
+Bit  3: -> 0
+Bit  4: -> 0
+Bit  5: -> 1
+Bit  6: -> 0
+Bit  7: -> 0  [LSB late@68=0]
+Bit  8: -> 0
+Bit  9: -> 0
+Bit 10: -> 0
+Bit 11: -> 0
+Bit 12: -> 0
+Bit 13: -> 0
+Bit 14: -> 0
+Bit 15: -> 0  [LSB late@68=0]
+Bit 16: -> 0
+Bit 17: -> 0
+Bit 18: -> 1
+Bit 19: -> 1
+Bit 20: -> 1
+Bit 21: -> 0
+Bit 22: -> 0
+Bit 23: -> 0  [LSB late@68=0]
+Bit 24: -> 0
+Bit 25: -> 0
+Bit 26: -> 0
+Bit 27: -> 0
+Bit 28: -> 1
+Bit 29: -> 0
+Bit 30: -> 1
+Bit 31: -> 0  [LSB late@68=0]
+Bit 32: -> 1
+Bit 33: -> 0
+Bit 34: -> 0
+Bit 35: -> 0
+Bit 36: -> 0
+Bit 37: -> 1
+Bit 38: -> 1
+Bit 39: -> 1  [LSB late@62=1]
+S1 Fehler (-20)	S1 Fehler (-20) @bit=-1 stage=-1	
+RECON: 66,0,56,10 | exp=132  (compare to RAW below)
+>> Kandidat: Bit 7 (Byte 0, Bit 0) kippt}
+>> Kandidat: Bit 15 (Byte 1, Bit 0) kippt}
+>> Kandidat: Bit 23 (Byte 2, Bit 0) kippt}
+>> Kandidat: Bit 31 (Byte 3, Bit 0) kippt}
+Checksumme falsch
+RAW: 66,0,56,10 | CS=133 exp=132	 
+Bit  0: -> 0
+Bit  1: -> 1
+Bit  2: -> 0
+Bit  3: -> 0
+Bit  4: -> 0
+Bit  5: -> 0
+Bit  6: -> 1
+Bit  7: -> 0  [LSB late@68=0]
+Bit  8: -> 0
+Bit  9: -> 0
+Bit 10: -> 0
+Bit 11: -> 0
+Bit 12: -> 0
+Bit 13: -> 0
+Bit 14: -> 0
+Bit 15: -> 0  [LSB late@68=0]
+Bit 16: -> 0
+Bit 17: -> 0
+Bit 18: -> 1
+Bit 19: -> 1
+Bit 20: -> 1
+Bit 21: -> 0
+Bit 22: -> 0
+Bit 23: -> 0  [LSB late@68=0]
+Bit 24: -> 0
+Bit 25: -> 0
+Bit 26: -> 0
+Bit 27: -> 0
+Bit 28: -> 1
+Bit 29: -> 0
+Bit 30: -> 1
+Bit 31: -> 0  [LSB late@68=0]
+Bit 32: -> 1
+Bit 33: -> 0
+Bit 34: -> 0
+Bit 35: -> 0
+Bit 36: -> 0
+Bit 37: -> 1
+Bit 38: -> 0
+Bit 39: -> 1  [LSB late@62=1]
+S1 Fehler (-20)	S1 Fehler (-20) @bit=-1 stage=-1	
+RECON: 66,0,56,10 | exp=132  (compare to RAW below)
+>> Kandidat: Bit 7 (Byte 0, Bit 0) kippt}
+>> Kandidat: Bit 15 (Byte 1, Bit 0) kippt}
+>> Kandidat: Bit 23 (Byte 2, Bit 0) kippt}
+>> Kandidat: Bit 31 (Byte 3, Bit 0) kippt}
+Checksumme falsch
+RAW: 66,0,56,10 | CS=133 exp=132	 
+Bit  0: -> 0
+Bit  1: -> 1
+Bit  2: -> 0
+Bit  3: -> 0
+Bit  4: -> 0
+Bit  5: -> 0
+Bit  6: -> 1
+Bit  7: -> 0  [LSB late@68=0]
+Bit  8: -> 0
+Bit  9: -> 0
+Bit 10: -> 0
+Bit 11: -> 0
+Bit 12: -> 0
+Bit 13: -> 0
+Bit 14: -> 0
+Bit 15: -> 0  [LSB late@68=0]
+Bit 16: -> 0
+Bit 17: -> 0
+Bit 18: -> 1
+Bit 19: -> 1
+Bit 20: -> 1
+Bit 21: -> 0
+Bit 22: -> 0
+Bit 23: -> 0  [LSB late@68=0]
+Bit 24: -> 0
+Bit 25: -> 0
+Bit 26: -> 0
+Bit 27: -> 0
+Bit 28: -> 1
+Bit 29: -> 0
+Bit 30: -> 1
+Bit 31: -> 0  [LSB late@68=0]
+Bit 32: -> 1
+Bit 33: -> 0
+Bit 34: -> 0
+Bit 35: -> 0
+Bit 36: -> 0
+Bit 37: -> 1
+Bit 38: -> 0
+Bit 39: -> 1  [LSB late@62=1]
+S1 Fehler (-20)	S1 Fehler (-20) @bit=-1 stage=-1	
+RECON: 66,0,56,10 | exp=132  (compare to RAW below)
+>> Kandidat: Bit 7 (Byte 0, Bit 0) kippt}
+>> Kandidat: Bit 15 (Byte 1, Bit 0) kippt}
+>> Kandidat: Bit 23 (Byte 2, Bit 0) kippt}
+>> Kandidat: Bit 31 (Byte 3, Bit 0) kippt}
+Checksumme falsch
+RAW: 66,0,56,10 | CS=133 exp=132	 
+Bit  0: -> 0
+Bit  1: -> 1
+Bit  2: -> 0
+Bit  3: -> 0
+Bit  4: -> 0
+Bit  5: -> 0
+Bit  6: -> 1
+Bit  7: -> 0  [LSB late@68=0]
+Bit  8: -> 0
+Bit  9: -> 0
+Bit 10: -> 0
+Bit 11: -> 0
+Bit 12: -> 0
+Bit 13: -> 0
+Bit 14: -> 0
+Bit 15: -> 0  [LSB late@68=0]
+Bit 16: -> 0
+Bit 17: -> 0
+Bit 18: -> 1
+Bit 19: -> 1
+Bit 20: -> 1
+Bit 21: -> 0
+Bit 22: -> 0
+Bit 23: -> 0  [LSB late@68=0]
+Bit 24: -> 0
+Bit 25: -> 0
+Bit 26: -> 0
+Bit 27: -> 0
+Bit 28: -> 1
+Bit 29: -> 0
+Bit 30: -> 1
+Bit 31: -> 0  [LSB late@68=0]
+Bit 32: -> 1
+Bit 33: -> 0
+Bit 34: -> 0
+Bit 35: -> 0
+Bit 36: -> 0
+Bit 37: -> 1
+Bit 38: -> 0
+Bit 39: -> 1  [LSB late@62=1]
+S1 Fehler (-20)	S1 Fehler (-20) @bit=-1 stage=-1	
+RECON: 66,0,56,10 | exp=132  (compare to RAW below)
+>> Kandidat: Bit 7 (Byte 0, Bit 0) kippt}
+>> Kandidat: Bit 15 (Byte 1, Bit 0) kippt}
+>> Kandidat: Bit 23 (Byte 2, Bit 0) kippt}
+>> Kandidat: Bit 31 (Byte 3, Bit 0) kippt}
+Checksumme falsch
+RAW: 66,0,56,10 | CS=133 exp=132	 
+

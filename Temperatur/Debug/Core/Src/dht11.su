@@ -1,0 +1,8 @@
+../Core/Src/dht11.c:17:20:DWT_EnsureEnabled	4	static,ignoring_inline_asm
+../Core/Src/dht11.c:33:13:DHT11_SetPinOutput	40	static
+../Core/Src/dht11.c:43:13:DHT11_SetPinInput	40	static
+../Core/Src/dht11.c:53:13:analyse_bit_timing	24	static
+../Core/Src/dht11.c:57:13:dht_debug_locate_flip	40	static
+../Core/Src/dht11.c:76:5:DHT11_Presence	40	static
+../Core/Src/dht11.c:105:18:DHT_DecodeAuto	40	static
+../Core/Src/dht11.c:128:14:DHT11_Read	168	static,ignoring_inline_asm
