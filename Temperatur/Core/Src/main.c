@@ -165,7 +165,7 @@ int main(void)
 	  /*Messintervall, t*300ms bei 1000 5 min
 	   * -> Sensor alle 30min
 	   *  mindestens 4 sonst DHT 11 zu schnell abgefragt*/
-	  HAL_Delay(40);
+	  HAL_Delay(1000);
 	  static uint16_t q=0;
 	  if (q<1800){
 		  q++;
