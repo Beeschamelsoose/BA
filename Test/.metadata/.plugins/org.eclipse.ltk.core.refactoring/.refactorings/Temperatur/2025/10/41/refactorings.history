@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;Temperatur/Core/Src/servo.c&apos; to &apos;servocfg.c&apos;" description="Rename resource &apos;servo.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Src/servo.c" name="servocfg.c" stamp="1759951665547" updateReferences="true"/>
+</session>
