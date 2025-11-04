@@ -2,4 +2,4 @@
 ../Core/Src/ausgabe.c:36:6:Ausgabe_RxCpltCallback	96	static
 ../Core/Src/ausgabe.c:74:6:Ausgabe_TxCpltCallback	16	static
 ../Core/Src/ausgabe.c:81:13:uart1_send_dma	24	static
-../Core/Src/ausgabe.c:92:6:Ausgabe_Process	200	static
+../Core/Src/ausgabe.c:92:6:Ausgabe_Process	216	static

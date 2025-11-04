@@ -29,6 +29,7 @@
 #include "dht11.h"
 #include "delay_us.h"
 #include "ausgabe.h"
+#include "sensors.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,20 +55,23 @@ DHT11_HandleTypeDef dht2 = {GPIOA, GPIO_PIN_1}; // Sensor 2 an PA1
 DHT11_HandleTypeDef dht3 = {GPIOA, GPIO_PIN_3}; // Sensor 3 an PA3
 
 float temp1, temp2, temp3;
-uint8_t t1, t2, t3;
+uint8_t t1, t2, t3, st;
 uint8_t hum1, hum2, hum3;
 uint8_t h1,h2,h3;
-
-
-uint32_t raw, value_adc, s1,s2;
+uint16_t adc12;
+uint32_t raw, value_adc, s1,s2, ts32;
 float v;
+DHT11_Status d1, d2, d3, s_adc;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-
+static void ReadSave(void);
+static void state_no_RCOOH(void);
+static void state_with_RCOOH(void);
+static void DebugUART(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -120,7 +124,7 @@ int main(void)
 
 
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-  const char *msg = "UART Test\r\n";
+  const char *msg = "UART Ready\r\n";
   HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
   HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
   ADC1_PA4_Init();
@@ -151,91 +155,74 @@ int main(void)
 
 //  HAL_ADC_Start_DMA(&hadc1,(uint32_t*)&value_adc,1);
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-  HAL_Delay(3000);
+  HAL_Delay(2000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  /*Messintervall, t*300ms bei 1000 5 min
+	   * -> Sensor alle 30min
+	   *  mindestens 4 sonst DHT 11 zu schnell abgefragt*/
+	  HAL_Delay(40);
+	  static uint16_t q=0;
+	  if (q<1800){
+		  q++;
+	  }else{
+		  q=0;
+	  }
 	  Ausgabe_Process();
 	  if (ausgabe_aktiv){
 		  HAL_Delay(20); // Warten bis fertig
 		  continue;
 	  }
-	  static uint8_t i=0;
-      if (i<5)      {
-
-    			  //Blinken während Messung
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-	  //Temperatursensoren abfragen
-      DHT11_Status d1 = DHT11_Read(&dht1, &temp1, &hum1);
-      DHT11_Status d2 = DHT11_Read(&dht2, &temp2, &hum2);
-      DHT11_Status d3 = DHT11_Read(&dht3, &temp3, &hum3);
-
-      //Binärwerte aus Bits
-      int8_t t1 = (d1 == DHT11_OK) ? (int8_t)temp1 : 0;
-      int8_t t2 = (d2 == DHT11_OK) ? (int8_t)temp2 : 0;
-      int8_t t3 = (d3 == DHT11_OK) ? (int8_t)temp3 : 0;
-      int8_t h1 = (d1 == DHT11_OK) ? (int8_t)hum1  : 0;
-      int8_t h2 = (d2 == DHT11_OK) ? (int8_t)hum2  : 0;
-      int8_t h3 = (d3 == DHT11_OK) ? (int8_t)hum3  : 0;
-
-      //ADC lesen
-      uint32_t adc_avg32 = 0;
-              uint16_t adc12     = 0;
-              HAL_StatusTypeDef s_adc = ADC1_ReadRawAveraged(&adc_avg32, 32); // z.B. 16 Samples
-              if (s_adc == HAL_OK) {
-                  adc12 = (uint16_t)(adc_avg32 & 0x0FFFu);  // exakt 12 Bit
-              } else {
-                  adc12 = 0;
-              }
-              //Statusbit shit
-      uint8_t st = 0;
-      st |= (d1 == DHT11_OK) ? (1u << 0) : 0;
-      st |= (d2 == DHT11_OK) ? (1u << 1) : 0;
-      st |= (d3 == DHT11_OK) ? (1u << 2) : 0;
-      st |= (s_adc == HAL_OK) ? (1u << 3) : 0;
-
-     //Speichern
-      uint32_t ts32 = HAL_GetTick();
-      (void)save_push_from_main_ts(t1, t2, t3, h1, h2, h3, adc12, st, 0, ts32);
-
-      //Per UART status zeigen
-
-      printf("time=%u\t",ts32);
-      if (d1 == DHT11_OK)
-          printf("S1: %.1f°C (%d) %u%% (%d)\t", temp1, t1, hum1, h1);
-      else
-          printf("S1 Fehler\t");
-
-      if (d2 == DHT11_OK)
-            printf("S2: %.1f°C (%d) %u%% (%d)\t", temp2, t2, hum2, h2);
-        else
-            printf("S2 Fehler\t");
-
-      if (d3 == DHT11_OK)
-            printf("S3: %.1f°C (%d) %u%% (%d)\t", temp3, t3, hum3, h3);
-        else
-            printf("S3 Fehler\t");
-
-      if (s_adc == HAL_OK)
-          printf("ADC: %u (0x%03X)\t", adc12, adc12);
-      else
-          printf("ADC Fehler\t");
-
-      printf("Status: 0x%X\n", st);
-
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-      HAL_Delay(1000);
-    		  }else{
-    			  printf("i=5\n");
-    			  HAL_Delay(1000);
-
-    		  }
-
+	  // Case decision, 5x ohne, 1x mit
+	  switch (q){
+	  case 60:{
+		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
+		//Sensor ein
+	  break;
+	  }
+	  case 150: {
+		  //Messen
+		  state_with_RCOOH();
+		  ReadSave();
+		  //Senor aus
+		 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+		 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+		 break;
+	  }
+	  case 450:{
+		  state_no_RCOOH();
+		  ReadSave();
+		  break;
+	  }
+	  case 750:{
+	  		  state_no_RCOOH();
+	  		  ReadSave();
+	  		  break;
+	  	  }
+	  case 1050:{
+  		  state_no_RCOOH();
+  		  ReadSave();
+  		  break;
+	  }
+	  case 1350:{
+  		  state_no_RCOOH();
+  		  ReadSave();
+  		  break;
+	  }
+	  case 1650:{
+  		  state_no_RCOOH();
+  		  ReadSave();
+  		  break;
+	  	  }
+	  }
+	    }
     /* USER CODE END WHILE */
-  }
+
     /* USER CODE BEGIN 3 */
   /* USER CODE END 3 */
 }
@@ -285,6 +272,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     Ausgabe_RxCpltCallback(huart);
@@ -293,6 +281,52 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     Ausgabe_TxCpltCallback(huart);
 }
+static void ReadSave(void){
+	read_sensors(&t1,  &t2, &t3, &h1, &h2, &h3, &adc12, &d1, &d2, &d3);
+	ts32 = HAL_GetTick();
+	(void)save_push_from_main_ts(t1, t2, t3, h1, h2, h3, adc12, st, 0, ts32);
+	DebugUART();
+}
+static void state_no_RCOOH(void){
+
+	      st &= ~(1u << 0);
+	      st &= ~(1u << 1);
+	      st &= ~(1u << 2);
+	      st |= (1u << 3);
+}
+static void state_with_RCOOH(void){
+
+	    	    	  st &= ~(1u << 0);
+	    	    	  st &= ~(1u << 1);
+	    	    	  st |= (1u << 2);
+	    	    	  st &= ~(1u << 3);
+}
+static void DebugUART(void){
+	printf("time=%u\t",ts32);
+	    		            if (d1 == DHT11_OK)
+	    		                printf("S1: %.1f°C (%d) %u%% (%d)\t", temp1, t1, hum1, h1);
+	    		            else
+	    		                printf("S1 Fehler\t");
+
+	    		            if (d2 == DHT11_OK)
+	    		                  printf("S2: %.1f°C (%d) %u%% (%d)\t", temp2, t2, hum2, h2);
+	    		              else
+	    		                  printf("S2 Fehler\t");
+
+	    		            if (d3 == DHT11_OK)
+	    		                  printf("S3: %.1f°C (%d) %u%% (%d)\t", temp3, t3, hum3, h3);
+	    		              else
+	    		                  printf("S3 Fehler\t");
+
+	    		            if (s_adc == HAL_OK)
+	    		                printf("ADC: %u (0x%03X)\t", adc12, adc12);
+	    		            else
+	    		                printf("ADC Fehler\t");
+
+	    		            printf("Status: 0x%X\n", st);
+	    		            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+}
+
 /* USER CODE END 4 */
 
 /**

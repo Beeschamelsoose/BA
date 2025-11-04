@@ -1,0 +1,47 @@
+/*
+ * sensors.c
+ *
+ *  Created on: Oct 21, 2025
+ *      Author: ernst
+ */
+#include "sensors.h"
+#include "dht11.h"
+#include "adc.h"
+
+// Handles aus main.c bekanntmachen
+extern DHT11_HandleTypeDef dht1, dht2, dht3;
+extern float temp1, temp2, temp3;
+extern uint8_t hum1, hum2, hum3;
+extern uint8_t h1,h2,h3;
+extern uint8_t t1, t2, t3;
+
+
+void read_sensors(int8_t *t1, int8_t *t2, int8_t *t3,
+                  int8_t *h1, int8_t *h2, int8_t *h3,
+                  uint16_t *adc12,
+				  DHT11_Status *d1, DHT11_Status *d2, DHT11_Status *d3)
+{
+	  //Temperatursensoren abfragen
+      *d1 = DHT11_Read(&dht1, &temp1, &hum1);
+      *d2 = DHT11_Read(&dht2, &temp2, &hum2);
+      *d3 = DHT11_Read(&dht3, &temp3, &hum3);
+
+      //Binärwerte aus Bits
+      *t1 = (*d1 == DHT11_OK) ? (int8_t)temp1 : 0;
+      *t2 = (*d2 == DHT11_OK) ? (int8_t)temp2 : 0;
+      *t3 = (*d3 == DHT11_OK) ? (int8_t)temp3 : 0;
+      *h1 = (*d1 == DHT11_OK) ? (int8_t)hum1  : 0;
+      *h2 = (*d2 == DHT11_OK) ? (int8_t)hum2  : 0;
+      *h3 = (*d3 == DHT11_OK) ? (int8_t)hum3  : 0;
+
+      //ADC lesen
+      uint32_t adc_avg32 = 0;
+      uint32_t s_adc;
+      s_adc = ADC1_ReadRawAveraged(&adc_avg32, 32); // z.B. 16 Samples
+
+      if (s_adc == HAL_OK) {
+    	  *adc12 = (uint16_t)(adc_avg32 & 0x0FFFu);  // exakt 12 Bit
+              } else {
+                  *adc12 = 0;
+              }
+}
